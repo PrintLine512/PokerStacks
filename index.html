@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<meta name="description" content="Калькулятор стеков и выигрышей для домашнего покерного турнира.">
+<meta name="description" content="Турнир по местам, дележ банка по стекам, кэш и общие расходы — калькулятор для домашнего покера.">
 <title>Домашняя финалка</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,6 +26,8 @@
   --neg:#AF382C;
   --pos-soft:#DAEBE3;
   --neg-soft:#F3DEDB;
+  --warn:#8A5A0B;
+  --warn-soft:#F6E9CE;
   --chip-1:#E8E1D2;
   --chip-2:#BE4239;
   --chip-3:#2E7D5B;
@@ -52,6 +54,8 @@
     --neg:#E0705F;
     --pos-soft:#16332A;
     --neg-soft:#3A211D;
+    --warn:#E0B958;
+    --warn-soft:#37301A;
     --chip-1:#DCD5C6;
     --chip-2:#D2564C;
     --chip-3:#3E9C73;
@@ -77,6 +81,8 @@
   --neg:#E0705F;
   --pos-soft:#16332A;
   --neg-soft:#3A211D;
+  --warn:#E0B958;
+  --warn-soft:#37301A;
   --chip-1:#DCD5C6;
   --chip-2:#D2564C;
   --chip-3:#3E9C73;
@@ -87,6 +93,7 @@
 }
 
 *{box-sizing:border-box}
+[hidden]{display:none !important}
 body{
   margin:0;
   background:var(--bg);
@@ -98,19 +105,14 @@ body{
 }
 .wrap{max-width:880px;margin:0 auto;padding:28px 16px 80px}
 
-/* ---------- header ---------- */
+/* ---------- шапка ---------- */
 header{padding:8px 0 22px}
-.suits{
-  display:flex;gap:10px;font-size:15px;line-height:1;margin-bottom:14px;
-}
+.suits{display:flex;gap:10px;font-size:15px;line-height:1;margin-bottom:14px}
 .suits span:nth-child(1){color:var(--chip-4)}
 .suits span:nth-child(2){color:var(--chip-2)}
 .suits span:nth-child(3){color:var(--chip-6)}
 .suits span:nth-child(4){color:var(--chip-3)}
-.eyebrow{
-  margin:0;font-size:11px;letter-spacing:.22em;text-transform:uppercase;
-  color:var(--ink-3);font-weight:700;
-}
+.eyebrow{margin:0;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
 h1{
   font-family:"Oswald","Arial Narrow",sans-serif;
   font-weight:600;font-size:clamp(34px,8vw,54px);line-height:1.02;
@@ -118,7 +120,7 @@ h1{
 }
 .lede{margin:0;color:var(--ink-2);max-width:52ch}
 
-/* ---------- summary ---------- */
+/* ---------- сводка ---------- */
 .summary{
   position:sticky;top:0;z-index:20;
   display:grid;grid-template-columns:repeat(2,1fr);gap:1px;
@@ -134,22 +136,23 @@ h1{
   font-size:clamp(17px,4.6vw,22px);font-variant-numeric:tabular-nums;margin-top:3px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
+.stat.alarm .v{color:var(--neg)}
 
-/* ---------- sections ---------- */
+/* ---------- секции ---------- */
 section{margin:0 0 26px}
 .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 12px}
 h2{
   font-family:"Oswald","Arial Narrow",sans-serif;font-weight:500;text-transform:uppercase;
   letter-spacing:.09em;font-size:16px;margin:0;color:var(--ink);
 }
-.sec-note{font-size:12px;color:var(--ink-3)}
+.sec-note{font-size:12px;color:var(--ink-3);text-align:right}
 .card{
   background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
   padding:16px;box-shadow:var(--shadow);
 }
 .card + .card{margin-top:12px}
 
-/* ---------- fields ---------- */
+/* ---------- поля ---------- */
 .grid{display:grid;gap:14px}
 @media(min-width:560px){.grid.two{grid-template-columns:1fr 1fr}}
 .field{display:flex;flex-direction:column;gap:6px}
@@ -161,10 +164,7 @@ input[type=text],select{
 }
 input.txt{font-family:"Karla",sans-serif;font-size:16px}
 select{font-family:"Karla",sans-serif;appearance:none;background-image:none}
-input:focus-visible,select:focus-visible,button:focus-visible{
-  outline:2px solid var(--accent);outline-offset:2px;
-}
-label{cursor:default}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 button{
   font-family:"Karla",sans-serif;font-size:14px;font-weight:700;color:var(--ink);
@@ -175,41 +175,53 @@ button:hover{border-color:var(--line-strong)}
 button.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
 button.ghost{background:transparent}
 button.tiny{padding:5px 9px;font-size:12px}
+button.danger{background:var(--neg-soft);color:var(--neg);border-color:transparent}
 
 .seg{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.seg button{flex:1;border:0;border-radius:0;background:var(--surface);font-weight:700;color:var(--ink-2)}
+.seg button{flex:1;border:0;border-radius:0;background:var(--surface);font-weight:700;color:var(--ink-2);padding:9px 6px;font-size:13px}
 .seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
-
-.switch{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
-.switch input{position:absolute;opacity:0;width:0;height:0}
-.track{
-  width:42px;height:24px;border-radius:99px;background:var(--surface-2);
-  border:1px solid var(--line-strong);position:relative;transition:background .18s ease;flex:none;
-}
-.track::after{
-  content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
-  background:var(--ink-3);transition:transform .18s ease,background .18s ease;
-}
-.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:3px}
-.switch input:checked + .track{background:var(--accent);border-color:transparent}
-.switch input:checked + .track::after{transform:translateX(18px);background:var(--accent-ink)}
-.switch span.lbl{font-size:14px;color:var(--ink-2)}
+.mode-note{margin:10px 0 0;font-size:13px;color:var(--ink-2)}
 
 .places{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
 .place-field{width:96px}
 .place-field > span{font-size:10px}
 
-/* ---------- players ---------- */
+/* ---------- расходы ---------- */
+.exp-list{display:grid;gap:10px}
+.exp{
+  display:grid;grid-template-columns:1fr;gap:8px;align-items:center;
+  background:var(--surface-2);border-radius:12px;padding:11px 12px;
+}
+@media(min-width:620px){.exp{grid-template-columns:minmax(0,1.5fr) 118px minmax(0,1fr) auto}}
+.exp .amt-wrap{position:relative}
+.exp .amt-wrap input{padding-right:26px}
+.exp .amt-wrap::after{
+  content:"₽";position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  color:var(--ink-3);font-size:13px;pointer-events:none;
+}
+.exp-row-2{display:grid;grid-template-columns:118px minmax(0,1fr) auto;gap:8px;align-items:center}
+@media(min-width:620px){.exp-row-2{display:contents}}
+.exp-empty{color:var(--ink-3);font-size:14px;margin:0}
+.exp-total{
+  display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:space-between;align-items:baseline;
+  margin-top:12px;padding-top:11px;border-top:1px dashed var(--line);font-size:14px;color:var(--ink-2);
+}
+.exp-total:empty{display:none}
+.exp-total b{font-family:"JetBrains Mono",monospace;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* ---------- игроки ---------- */
+.players{display:grid;gap:12px}
 .player{
   background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
   padding:14px;box-shadow:var(--shadow);
 }
-.players{display:grid;gap:12px}
+.player.out{opacity:.72}
 .p-top{display:flex;gap:8px;align-items:center;margin-bottom:12px}
 .p-top .rank{
   font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:600;color:var(--ink-3);
   background:var(--surface-2);border-radius:8px;padding:5px 8px;flex:none;min-width:34px;text-align:center;
 }
+.p-top .rank.win{background:var(--accent);color:var(--accent-ink)}
 .p-top input{flex:1}
 .p-body{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:end}
 @media(max-width:460px){.p-body{grid-template-columns:1fr;align-items:stretch}}
@@ -219,6 +231,7 @@ button.tiny{padding:5px 9px;font-size:12px}
   background:var(--surface);font-family:"JetBrains Mono",monospace;font-weight:600;
   padding:9px 4px;min-width:34px;text-align:center;font-variant-numeric:tabular-nums;
 }
+.p-conv{font-size:12px;color:var(--ink-3);font-family:"JetBrains Mono",monospace;margin-top:5px}
 .p-out{
   display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:space-between;
   margin-top:12px;padding-top:11px;border-top:1px dashed var(--line);
@@ -238,11 +251,11 @@ button.tiny{padding:5px 9px;font-size:12px}
 }
 .del:hover{color:var(--neg);background:var(--neg-soft)}
 
-/* ---------- chips ---------- */
+/* ---------- фишки ---------- */
 .chips-panel{margin-top:12px;padding:12px;background:var(--surface-2);border-radius:12px}
 .chips-panel[hidden]{display:none}
 .chip-row{display:flex;align-items:center;gap:10px;padding:5px 0}
-.swatch{width:20px;height:20px;border-radius:50%;flex:none;border:2px dashed rgba(255,255,255,.55);box-shadow:0 0 0 1px rgba(0,0,0,.22) inset}
+.swatch{width:20px;height:20px;border-radius:50%;flex:none;border:2px dashed rgba(255,255,255,.45);box-shadow:0 0 0 1px rgba(0,0,0,.22) inset}
 .chip-row .den{
   font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:600;width:62px;flex:none;
   font-variant-numeric:tabular-nums;color:var(--ink-2);
@@ -256,17 +269,18 @@ button.tiny{padding:5px 9px;font-size:12px}
 .denom-edit{display:flex;align-items:center;gap:10px}
 .denom-edit input{width:120px}
 
-/* ---------- results ---------- */
+/* ---------- итоги ---------- */
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{border-collapse:collapse;width:100%;min-width:420px}
-@media(max-width:560px){table{min-width:380px;font-size:13px}
+@media(max-width:560px){
+  table{min-width:380px;font-size:13px}
   th + th,td + td{padding-left:9px !important}
   td{font-size:13px}
   td:nth-child(2){font-size:14px;padding-right:8px}
 }
 th{
-  white-space:nowrap;text-align:right;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
-  font-weight:700;padding:0 0 8px;border-bottom:1px solid var(--line);
+  white-space:nowrap;text-align:right;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:700;padding:0 0 8px;border-bottom:1px solid var(--line);
 }
 th:first-child,td:first-child{text-align:left}
 th:nth-child(2),td:nth-child(2){text-align:left}
@@ -281,23 +295,14 @@ tr:last-child td{border-bottom:0}
 .medal{color:var(--accent);font-weight:600}
 
 .pays{display:grid;gap:8px}
-.pay-row{
-  display:flex;align-items:center;gap:10px;background:var(--surface-2);
-  border-radius:12px;padding:11px 13px;
-}
+.pay-row{display:flex;align-items:center;gap:10px;background:var(--surface-2);border-radius:12px;padding:11px 13px}
 .pay-row .who{font-weight:700}
 .pay-row .arrow{color:var(--accent);font-weight:700}
-.pay-row .amt{
-  margin-left:auto;font-family:"JetBrains Mono",monospace;font-weight:600;
-  font-variant-numeric:tabular-nums;
-}
+.pay-row .amt{margin-left:auto;font-family:"JetBrains Mono",monospace;font-weight:600;font-variant-numeric:tabular-nums}
 .empty{color:var(--ink-3);font-size:14px;margin:0}
-.hint{
-  font-size:13px;color:var(--ink-2);background:var(--accent-soft);
-  border-radius:10px;padding:9px 12px;margin:0 0 12px;
-}
+.hint{font-size:13px;color:var(--ink-2);background:var(--accent-soft);border-radius:10px;padding:9px 12px;margin:0 0 12px}
+.hint.warn{background:var(--warn-soft);color:var(--warn)}
 .row-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-button.danger{background:var(--neg-soft);color:var(--neg);border-color:transparent}
 footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
 .toast{
   position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(12px);
@@ -312,52 +317,48 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
 <main class="wrap">
   <header>
     <div class="suits" aria-hidden="true"><span>&#9824;</span><span>&#9829;</span><span>&#9830;</span><span>&#9827;</span></div>
-    <p class="eyebrow">домашний турнир</p>
+    <p class="eyebrow">домашний покер</p>
     <h1>Домашняя финалка</h1>
-    <p class="lede">Считаем стеки, делим банк и раскидываем набор фишек на всех — чтобы после игры никто ничего не пересчитывал.</p>
+    <p class="lede">Турнир по местам, дележ банка по стекам или кэш, где каждый выходит когда захочет. Плюс общие расходы на всех.</p>
   </header>
 
-  <div class="summary">
-    <div class="stat"><div class="k">Банк</div><div class="v" id="s-pool">—</div></div>
-    <div class="stat"><div class="k">Игроков</div><div class="v" id="s-players">—</div></div>
-    <div class="stat"><div class="k">Фишек в игре</div><div class="v" id="s-chips">—</div></div>
-    <div class="stat"><div class="k">За набор с носа</div><div class="v" id="s-share">—</div></div>
-  </div>
+  <div class="summary" id="summary"></div>
 
   <section>
-    <div class="sec-head"><h2>Условия</h2><span class="sec-note" id="chip-price">—</span></div>
+    <div class="sec-head"><h2>Условия</h2><span class="sec-note" id="rate-note"></span></div>
     <div class="card">
-      <div class="grid two">
-        <label class="field"><span>Бай-ин, &#8381;</span><input type="text" inputmode="decimal" id="buyin"></label>
-        <div class="field"><span>Как делим банк</span>
-          <div class="seg" role="group">
-            <button type="button" id="mode-stack" aria-pressed="true">По стекам</button>
-            <button type="button" id="mode-places" aria-pressed="false">По местам</button>
-          </div>
+      <div class="field" style="margin-bottom:4px"><span>Формат игры</span>
+        <div class="seg" role="group" aria-label="Формат игры">
+          <button type="button" id="mode-places" aria-pressed="false">Турнир по местам</button>
+          <button type="button" id="mode-stack" aria-pressed="true">Делим по стекам</button>
+          <button type="button" id="mode-cash" aria-pressed="false">Кэш</button>
         </div>
+      </div>
+      <p class="mode-note" id="mode-note"></p>
+      <div class="grid two" style="margin-top:14px">
+        <label class="field"><span id="buyin-label">Бай-ин, &#8381;</span><input type="text" inputmode="decimal" id="buyin"></label>
+        <label class="field" id="chips-field" hidden><span>Фишек за закупку</span><input type="text" inputmode="decimal" id="chips-per"></label>
       </div>
       <div id="places-box" hidden style="margin-top:14px">
         <div class="field"><span>Призовые, %</span></div>
         <div class="places" id="places"></div>
       </div>
     </div>
+  </section>
 
+  <section>
+    <div class="sec-head"><h2>Общие расходы</h2><span class="sec-note">делятся поровну на всех</span></div>
     <div class="card">
-      <label class="switch" style="margin-bottom:14px">
-        <input type="checkbox" id="set-split" checked><span class="track"></span>
-        <span class="lbl">Делить набор фишек на всех</span>
-      </label>
-      <div class="grid two" id="set-fields">
-        <label class="field"><span>Стоимость набора, &#8381;</span><input type="text" inputmode="decimal" id="set-cost"></label>
-        <label class="field"><span>Кто его оплатил</span><select id="set-payer"></select></label>
-      </div>
+      <div class="exp-list" id="expenses"></div>
+      <div class="row-actions"><button type="button" class="tiny" id="add-exp">+ Расход</button></div>
+      <div class="exp-total" id="exp-total"></div>
     </div>
   </section>
 
   <section>
     <div class="sec-head"><h2>Игроки</h2><button type="button" class="ghost tiny" id="toggle-denoms">Номиналы фишек</button></div>
     <div class="card" id="denoms-card" hidden>
-      <div class="sec-note">Из этих номиналов считается стек в блоке «Фишки» у игрока.</div>
+      <div class="sec-note" style="text-align:left">Из этих номиналов считается стек в блоке «Фишки» у игрока.</div>
       <div class="denoms" id="denoms"></div>
       <div class="row-actions">
         <button type="button" class="tiny" id="add-denom">+ номинал</button>
@@ -367,8 +368,8 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
     <div class="players" id="players"></div>
     <div class="row-actions">
       <button type="button" class="primary" id="add-player">+ Игрок</button>
-      <button type="button" class="ghost" id="clear-stacks">Обнулить стеки</button>
-      <button type="button" class="ghost" id="reset">Новый турнир</button>
+      <button type="button" class="ghost" id="clear-stacks">Обнулить результаты</button>
+      <button type="button" class="ghost" id="reset">Новый вечер</button>
     </div>
   </section>
 
@@ -386,7 +387,12 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
   </section>
 
   <section>
-    <div class="sec-head"><h2>Кто кому платит</h2><div style="display:flex;gap:10px;align-items:center"><span class="sec-note" id="pays-note"></span><button type="button" class="ghost tiny" id="copy">Скопировать</button></div></div>
+    <div class="sec-head"><h2>Кто кому платит</h2>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span class="sec-note" id="pays-note"></span>
+        <button type="button" class="ghost tiny" id="copy">Скопировать</button>
+      </div>
+    </div>
     <div class="card"><div class="pays" id="pays"></div></div>
   </section>
 
@@ -400,34 +406,71 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
   var CHIP_VARS = ["--chip-1","--chip-2","--chip-3","--chip-4","--chip-5","--chip-6"];
   var KEY = "domashnyaya-finalka-v1";
 
-  var S = {
-    buyIn: 1000,
-    mode: "stack",
-    places: [50, 30, 20],
-    setCost: 4000,
-    setSplit: true,
-    setPayer: 1,
-    denoms: [25, 100, 500, 1000],
-    nextId: 1,
-    players: []
+  var MODES = {
+    places: {
+      note: "Турнир до победителя: расставь занятые места, банк делится по призовым процентам.",
+      buyInLabel: "Бай-ин, ₽",
+      entriesLabel: "Бай-ины",
+      payLabel: "Выплата"
+    },
+    stack: {
+      note: "Расходимся посреди турнира: банк делится пропорционально фишкам на руках.",
+      buyInLabel: "Бай-ин, ₽",
+      entriesLabel: "Бай-ины",
+      payLabel: "Выплата"
+    },
+    cash: {
+      note: "Кэш: каждый закупается сколько нужно и выходит когда захочет, фишки меняются обратно по курсу.",
+      buyInLabel: "Закупка, ₽",
+      entriesLabel: "Закупок",
+      payLabel: "Кэшаут"
+    }
   };
 
-  function seed(){
-    S.players = [];
-    S.nextId = 1;
-    ["Я", "", "", ""].forEach(function(nm){ addPlayer(nm, true); });
-    S.setPayer = S.players[0].id;
-  }
+  var S = {
+    mode: "places",
+    buyIn: 1000,
+    chipsPerBuyIn: 5000,
+    places: [50, 30, 20],
+    denoms: [25, 100, 500, 1000],
+    nextId: 1,
+    nextExpId: 1,
+    players: [],
+    expenses: []
+  };
+
+  /* ---------- модель ---------- */
   function addPlayer(name, quiet){
-    var p = { id: S.nextId++, name: name || "", entries: 1, stack: 0, chips: [], open: false };
+    var p = { id: S.nextId++, name: name || "", entries: 1, stack: 0, place: 0, chips: [], open: false };
     S.players.push(p);
     if(!quiet) renderPlayers();
     return p;
   }
+  function addExpense(title, amount, payer){
+    var e = { id: S.nextExpId++, title: title || "", amount: amount || 0,
+              payer: payer !== undefined ? payer : (S.players[0] ? S.players[0].id : null) };
+    S.expenses.push(e);
+    return e;
+  }
+  // Расход без живого плательщика повесил бы деньги в воздух — переводим на первого игрока.
+  function normalizeExpenses(){
+    var first = S.players.length ? S.players[0].id : null;
+    S.expenses.forEach(function(e){
+      if(!S.players.some(function(p){ return p.id === e.payer; })) e.payer = first;
+    });
+  }
+  function seed(){
+    S.players = [];
+    S.nextId = 1;
+    ["Я", "", "", ""].forEach(function(nm){ addPlayer(nm, true); });
+    S.expenses = [];
+    S.nextExpId = 1;
+    addExpense("Набор фишек", 4000, S.players[0].id);
+  }
 
-  /* ---------- helpers ---------- */
+  /* ---------- мелочи ---------- */
   function num(v){
-    var x = parseFloat(String(v).replace(/[\s ]/g, "").replace(",", "."));
+    var x = parseFloat(String(v).replace(/[\s ]/g, "").replace(",", "."));
     return isFinite(x) ? x : 0;
   }
   function fmtN(v, d){
@@ -436,6 +479,14 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
   function money(v, d){ return fmtN(v, d) + " ₽"; }
   function signed(v){ return (v > 0 ? "+" : v < 0 ? "−" : "") + money(Math.abs(v)); }
   function signedN(v, d){ return (v > 0 ? "+" : v < 0 ? "−" : "") + fmtN(Math.abs(v), d); }
+  function nameOf(p, i){ return p.name.trim() || ("Игрок " + (i + 1)); }
+  function plural(n, one, few, many){
+    var a = Math.abs(n) % 100, b = a % 10;
+    if(a > 10 && a < 20) return many;
+    if(b > 1 && b < 5) return few;
+    if(b === 1) return one;
+    return many;
+  }
 
   // Округление до целых с сохранением суммы (метод наибольших остатков).
   function roundKeepSum(vals){
@@ -450,49 +501,89 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
     return out;
   }
 
-  function nameOf(p, i){ return p.name.trim() || ("Игрок " + (i + 1)); }
-
   /* ---------- расчёт ---------- */
   function calc(){
     var n = S.players.length;
+    var cash = S.mode === "cash";
     var pool = 0, totalStack = 0;
     S.players.forEach(function(p){ pool += p.entries * S.buyIn; totalStack += p.stack; });
 
-    var payerOk = S.setSplit && S.players.some(function(p){ return p.id === S.setPayer; });
-    var share = (payerOk && n > 0) ? S.setCost / n : 0;
-
-    var order = S.players.map(function(_, i){ return i; }).sort(function(a, b){
-      return S.players[b].stack - S.players[a].stack || a - b;
+    normalizeExpenses();
+    var expTotal = 0, paidBy = {};
+    if(n > 0) S.expenses.forEach(function(e){
+      expTotal += e.amount;
+      paidBy[e.payer] = (paidBy[e.payer] || 0) + e.amount;
     });
+    var share = n > 0 ? expTotal / n : 0;
+    var hasExp = n > 0 && S.expenses.length > 0;
 
-    var used = S.places.slice(0, Math.min(S.places.length, n));
-    var placesSum = used.reduce(function(a, b){ return a + b; }, 0);
-    var pending = totalStack <= 0 || (S.mode === "places" && placesSum <= 0);
+    // курс обмена фишек: сколько рублей стоит одна фишка
+    var rate = cash ? (S.chipsPerBuyIn > 0 ? S.buyIn / S.chipsPerBuyIn : 0)
+                    : (totalStack > 0 ? pool / totalStack : 0);
+
+    // призовые доли, заявленные игроками (одно место на двоих — делят поровну)
+    var claimed = S.players.map(function(p){
+      return (p.place >= 1 && p.place <= S.places.length) ? S.places[p.place - 1] : 0;
+    });
+    var claimedSum = claimed.reduce(function(a, b){ return a + b; }, 0);
+
+    var pending = S.mode === "places" ? claimedSum <= 0 : totalStack <= 0;
 
     var payouts;
     if(pending){
-      // банк ещё не разыгран — у каждого «на руках» его собственный взнос
+      // результат ещё не введён — у каждого «на руках» его собственный взнос
       payouts = S.players.map(function(p){ return p.entries * S.buyIn; });
+    } else if(S.mode === "places"){
+      payouts = claimed.map(function(v){ return pool * v / claimedSum; });
     } else if(S.mode === "stack"){
       payouts = S.players.map(function(p){ return pool * p.stack / totalStack; });
     } else {
-      payouts = new Array(n).fill(0);
-      order.forEach(function(pi, k){ if(k < used.length) payouts[pi] = pool * used[k] / placesSum; });
+      payouts = S.players.map(function(p){ return p.stack * rate; });
     }
 
     var rows = S.players.map(function(p, i){
       var contrib = p.entries * S.buyIn;
-      var setDelta = payerOk ? ((p.id === S.setPayer ? S.setCost : 0) - share) : 0;
+      var expDelta = (paidBy[p.id] || 0) - share;
       return {
-        p: p, i: i, name: nameOf(p, i), place: order.indexOf(i) + 1,
-        contrib: contrib, payout: payouts[i], setDelta: setDelta,
-        net: payouts[i] - contrib + setDelta
+        p: p, i: i, name: nameOf(p, i), place: 0,
+        contrib: contrib, payout: payouts[i], expDelta: expDelta,
+        net: payouts[i] - contrib + expDelta
       };
     });
     var ints = roundKeepSum(rows.map(function(r){ return r.net; }));
     rows.forEach(function(r, k){ r.netInt = ints[k]; });
 
-    return { rows: rows, pool: pool, totalStack: totalStack, share: share, n: n, payerOk: payerOk, pending: pending };
+    var order = S.players.map(function(_, i){ return i; }).sort(function(a, b){
+      if(S.mode === "places"){
+        var ka = S.players[a].place >= 1 ? S.players[a].place : 1e9;
+        var kb = S.players[b].place >= 1 ? S.players[b].place : 1e9;
+        return ka - kb || a - b;
+      }
+      if(S.mode === "cash") return rows[b].netInt - rows[a].netInt || a - b;
+      return S.players[b].stack - S.players[a].stack || a - b;
+    });
+    rows.forEach(function(r, i){
+      r.place = S.mode === "places" ? (r.p.place >= 1 ? r.p.place : 0) : order.indexOf(i) + 1;
+    });
+
+    // в кэше фишки на столе обязаны сойтись с закупками
+    var cashDiff = (cash && !pending) ? (payouts.reduce(function(a, b){ return a + b; }, 0) - pool) : 0;
+
+    // дубли мест: 1-е место у двоих — это ошибка ввода, а не решение за столом
+    var dupPlaces = false;
+    if(S.mode === "places"){
+      var seenPlace = {};
+      S.players.forEach(function(p){
+        if(p.place >= 1){
+          if(seenPlace[p.place]) dupPlaces = true;
+          seenPlace[p.place] = true;
+        }
+      });
+    }
+
+    return { rows: rows, pool: pool, totalStack: totalStack, share: share, n: n, rate: rate,
+             expTotal: expTotal, hasExp: hasExp, pending: pending, cashDiff: cashDiff,
+             claimedSum: claimedSum, dupPlaces: dupPlaces, order: order };
   }
 
   // Минимум переводов: крупнейший должник гасит крупнейшего кредитора.
@@ -524,15 +615,29 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
       if(!raw) return false;
       var d = JSON.parse(raw);
       if(!d || !Array.isArray(d.players) || !d.players.length) return false;
-      ["buyIn","mode","setCost","setSplit","setPayer","nextId"].forEach(function(k){
+      ["buyIn","mode","chipsPerBuyIn","nextId","nextExpId"].forEach(function(k){
         if(d[k] !== undefined) S[k] = d[k];
       });
+      if(!MODES[S.mode]) S.mode = "stack";
       if(Array.isArray(d.places) && d.places.length) S.places = d.places;
       if(Array.isArray(d.denoms) && d.denoms.length) S.denoms = d.denoms;
       S.players = d.players.map(function(p){
         return { id: p.id, name: p.name || "", entries: p.entries || 1, stack: p.stack || 0,
-                 chips: Array.isArray(p.chips) ? p.chips : [], open: false };
+                 place: p.place || 0, chips: Array.isArray(p.chips) ? p.chips : [], open: false };
       });
+      S.nextId = Math.max(1, S.nextId, S.players.reduce(function(a, p){ return Math.max(a, p.id + 1); }, 1));
+      if(Array.isArray(d.expenses)){
+        S.expenses = d.expenses.map(function(e){
+          return { id: e.id, title: e.title || "", amount: e.amount || 0, payer: e.payer };
+        });
+      } else {
+        // расклад из версии, где расход был ровно один — набор фишек
+        S.expenses = [];
+        S.nextExpId = 1;
+        if(d.setSplit !== false && d.setCost) addExpense("Набор фишек", d.setCost, d.setPayer);
+      }
+      S.nextExpId = Math.max(1, S.nextExpId,
+        S.expenses.reduce(function(a, e){ return Math.max(a, e.id + 1); }, 1));
       return true;
     } catch(e){ return false; }
   }
@@ -554,10 +659,41 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
     i.addEventListener("input", function(){ oninput(num(i.value)); });
     return i;
   }
+  function payerSelect(current, onchange){
+    var sel = document.createElement("select");
+    sel.className = "payer";
+    S.players.forEach(function(p, i){
+      var o = document.createElement("option");
+      o.value = String(p.id);
+      o.textContent = nameOf(p, i);
+      sel.appendChild(o);
+    });
+    if(!S.players.length){
+      var o2 = document.createElement("option");
+      o2.textContent = "нет игроков";
+      sel.appendChild(o2);
+      sel.disabled = true;
+    }
+    if(current !== null && current !== undefined) sel.value = String(current);
+    sel.addEventListener("change", function(){ onchange(parseInt(sel.value, 10)); });
+    return sel;
+  }
+  function syncPayerLabels(){
+    var sels = document.querySelectorAll("select.payer");
+    S.players.forEach(function(p, i){
+      for(var k = 0; k < sels.length; k++){
+        var o = sels[k].querySelector('option[value="' + p.id + '"]');
+        if(o) o.textContent = nameOf(p, i);
+      }
+    });
+  }
 
+  /* ---------- игроки ---------- */
   function renderPlayers(){
     playersEl.innerHTML = "";
     rowRefs = [];
+    var m = MODES[S.mode];
+
     S.players.forEach(function(p, idx){
       var card = el("div", "player");
 
@@ -571,100 +707,156 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
       del.type = "button"; del.title = "Убрать игрока";
       del.addEventListener("click", function(){
         S.players.splice(idx, 1);
-        if(!S.players.some(function(x){ return x.id === S.setPayer; }))
-          S.setPayer = S.players.length ? S.players[0].id : null;
-        renderPlayers(); renderPayer();
+        renderPlayers(); renderExpenses();
       });
       top.appendChild(rank); top.appendChild(name); top.appendChild(del);
 
       var body = el("div", "p-body");
 
       var fEntries = el("label", "field");
-      fEntries.appendChild(el("span", null, "Бай-ины"));
+      fEntries.appendChild(el("span", null, m.entriesLabel));
       var st = el("div", "stepper");
-      var minus = el("button", null, "−"); minus.type = "button"; minus.setAttribute("aria-label", "Минус бай-ин");
+      var minus = el("button", null, "−"); minus.type = "button"; minus.setAttribute("aria-label", "Минус");
       var cnt = el("div", "n", String(p.entries));
-      var plus = el("button", null, "+"); plus.type = "button"; plus.setAttribute("aria-label", "Плюс бай-ин");
+      var plus = el("button", null, "+"); plus.type = "button"; plus.setAttribute("aria-label", "Плюс");
       minus.addEventListener("click", function(){ p.entries = Math.max(0, p.entries - 1); cnt.textContent = p.entries; recalc(); });
       plus.addEventListener("click", function(){ p.entries += 1; cnt.textContent = p.entries; recalc(); });
       st.appendChild(minus); st.appendChild(cnt); st.appendChild(plus);
       fEntries.appendChild(st);
+      body.appendChild(fEntries);
 
-      var fStack = el("label", "field");
-      fStack.appendChild(el("span", null, "Стек, фишек"));
-      var stackInp = numInput(p.stack ? fmtN(p.stack) : "", function(v){ p.stack = v; recalc(); });
-      fStack.appendChild(stackInp);
+      var stackInp = null, conv = null, panel = null;
 
-      var chipsBtn = el("button", "ghost", "Фишки");
-      chipsBtn.type = "button";
-      body.appendChild(fEntries); body.appendChild(fStack); body.appendChild(chipsBtn);
-
-      var panel = el("div", "chips-panel");
-      panel.hidden = true;
-      chipsBtn.addEventListener("click", function(){
-        p.open = !p.open;
-        panel.hidden = !p.open;
-        chipsBtn.setAttribute("aria-expanded", String(p.open));
-        if(p.open) buildChips();
-      });
-
-      function buildChips(){
-        panel.innerHTML = "";
-        S.denoms.forEach(function(d, di){
-          var row = el("div", "chip-row");
-          var sw = el("div", "swatch");
-          sw.style.background = "var(" + CHIP_VARS[di % CHIP_VARS.length] + ")";
-          var den = el("div", "den", fmtN(d));
-          var inp = numInput(p.chips[di] ? String(p.chips[di]) : "", function(v){
-            p.chips[di] = v;
-            p.stack = S.denoms.reduce(function(a, dd, k){ return a + dd * (p.chips[k] || 0); }, 0);
-            stackInp.value = p.stack ? fmtN(p.stack) : "";
-            sub.textContent = fmtN(d * (p.chips[di] || 0));
-            recalc();
-          });
-          inp.setAttribute("aria-label", "Фишек номиналом " + d);
-          var sub = el("div", "sub", fmtN(d * (p.chips[di] || 0)));
-          row.appendChild(sw); row.appendChild(den); row.appendChild(inp); row.appendChild(sub);
-          panel.appendChild(row);
+      if(S.mode === "places"){
+        var fPlace = el("label", "field");
+        fPlace.appendChild(el("span", null, "Место"));
+        var sel = document.createElement("select");
+        sel.className = "place";
+        sel.setAttribute("aria-label", "Занятое место");
+        var o0 = document.createElement("option");
+        o0.value = "0"; o0.textContent = "— не указано";
+        sel.appendChild(o0);
+        for(var k = 1; k <= Math.max(S.players.length, p.place); k++){
+          var o = document.createElement("option");
+          o.value = String(k);
+          o.textContent = k + " место" + (k <= S.places.length ? " · " + fmtN(S.places[k - 1], 2) + "%" : "");
+          sel.appendChild(o);
+        }
+        sel.value = String(p.place || 0);
+        sel.addEventListener("change", function(){
+          p.place = parseInt(sel.value, 10) || 0;
+          card.classList.toggle("out", p.place > S.places.length && p.place >= 1);
+          recalc();
         });
+        fPlace.appendChild(sel);
+        body.appendChild(fPlace);
+      } else {
+        var fStack = el("label", "field");
+        fStack.appendChild(el("span", null, S.mode === "cash" ? "Вышел с, фишек" : "Стек, фишек"));
+        stackInp = numInput(p.stack ? fmtN(p.stack) : "", function(v){
+          p.stack = v;
+          recalc();
+        });
+        fStack.appendChild(stackInp);
+        if(S.mode === "cash"){
+          conv = el("div", "p-conv", "");
+          fStack.appendChild(conv);
+        }
+        body.appendChild(fStack);
+
+        var chipsBtn = el("button", "ghost", "Фишки");
+        chipsBtn.type = "button";
+        chipsBtn.setAttribute("aria-expanded", "false");
+        body.appendChild(chipsBtn);
+
+        panel = el("div", "chips-panel");
+        panel.hidden = true;
+        chipsBtn.addEventListener("click", function(){
+          p.open = !p.open;
+          panel.hidden = !p.open;
+          chipsBtn.setAttribute("aria-expanded", String(p.open));
+          if(p.open) buildChips();
+        });
+
+        var buildChips = function(){
+          panel.innerHTML = "";
+          S.denoms.forEach(function(d, di){
+            var row = el("div", "chip-row");
+            var sw = el("div", "swatch");
+            sw.style.background = "var(" + CHIP_VARS[di % CHIP_VARS.length] + ")";
+            var den = el("div", "den", fmtN(d));
+            var sub = el("div", "sub", fmtN(d * (p.chips[di] || 0)));
+            var inp = numInput(p.chips[di] ? String(p.chips[di]) : "", function(v){
+              p.chips[di] = v;
+              p.stack = S.denoms.reduce(function(a, dd, kk){ return a + dd * (p.chips[kk] || 0); }, 0);
+              stackInp.value = p.stack ? fmtN(p.stack) : "";
+              sub.textContent = fmtN(d * (p.chips[di] || 0));
+              recalc();
+            });
+            inp.setAttribute("aria-label", "Фишек номиналом " + d);
+            row.appendChild(sw); row.appendChild(den); row.appendChild(inp); row.appendChild(sub);
+            panel.appendChild(row);
+          });
+        };
       }
 
       var out = el("div", "p-out");
       var pay = el("div", "pay");
-      pay.innerHTML = "Выплата <b>—</b>";
+      pay.innerHTML = m.payLabel + " <b>—</b>";
       var net = el("div", "net zero", "—");
       out.appendChild(pay); out.appendChild(net);
 
-      card.appendChild(top); card.appendChild(body); card.appendChild(panel); card.appendChild(out);
+      card.appendChild(top); card.appendChild(body);
+      if(panel) card.appendChild(panel);
+      card.appendChild(out);
       playersEl.appendChild(card);
-      rowRefs.push({ pay: pay.querySelector("b"), net: net, rank: rank, stack: stackInp });
+      rowRefs.push({ pay: pay.querySelector("b"), net: net, rank: rank, stack: stackInp, conv: conv, card: card });
     });
     recalc();
   }
 
-  function renderPayer(){
-    var sel = $("set-payer");
-    sel.innerHTML = "";
-    S.players.forEach(function(p, i){
-      var o = document.createElement("option");
-      o.value = String(p.id);
-      o.textContent = nameOf(p, i);
-      sel.appendChild(o);
+  /* ---------- расходы ---------- */
+  function renderExpenses(){
+    normalizeExpenses();
+    var box = $("expenses");
+    box.innerHTML = "";
+    if(!S.expenses.length){
+      box.appendChild(el("p", "exp-empty", "Расходов нет — считаем только игру."));
+      recalc();
+      return;
+    }
+    S.expenses.forEach(function(e, idx){
+      var row = el("div", "exp");
+
+      var title = el("input", "txt");
+      title.type = "text";
+      title.value = e.title;
+      title.placeholder = "На что";
+      title.setAttribute("aria-label", "Название расхода");
+      title.addEventListener("input", function(){ e.title = title.value; save(); });
+
+      var second = el("div", "exp-row-2");
+      var amtWrap = el("div", "amt-wrap");
+      var amt = numInput(e.amount ? fmtN(e.amount) : "", function(v){ e.amount = v; recalc(); });
+      amt.setAttribute("aria-label", "Сумма расхода");
+      amtWrap.appendChild(amt);
+
+      var sel = payerSelect(e.payer, function(v){ e.payer = v; recalc(); });
+      sel.setAttribute("aria-label", "Кто оплатил");
+
+      var del = el("button", "del", "×");
+      del.type = "button";
+      del.title = "Убрать расход";
+      del.addEventListener("click", function(){ S.expenses.splice(idx, 1); renderExpenses(); });
+
+      second.appendChild(amtWrap); second.appendChild(sel); second.appendChild(del);
+      row.appendChild(title); row.appendChild(second);
+      box.appendChild(row);
     });
-    if(!S.players.some(function(p){ return p.id === S.setPayer; }))
-      S.setPayer = S.players.length ? S.players[0].id : null;
-    if(S.setPayer !== null) sel.value = String(S.setPayer);
     recalc();
   }
 
-  function syncPayerLabels(){
-    var sel = $("set-payer");
-    S.players.forEach(function(p, i){
-      var o = sel.querySelector('option[value="' + p.id + '"]');
-      if(o) o.textContent = nameOf(p, i);
-    });
-  }
-
+  /* ---------- призовые места ---------- */
   function renderPlaces(){
     var box = $("places");
     box.innerHTML = "";
@@ -675,9 +867,9 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
       box.appendChild(f);
     });
     var add = el("button", "tiny", "+ место"); add.type = "button";
-    add.addEventListener("click", function(){ S.places.push(10); renderPlaces(); });
+    add.addEventListener("click", function(){ S.places.push(10); renderPlaces(); renderPlayers(); });
     var rem = el("button", "tiny ghost", "− место"); rem.type = "button";
-    rem.addEventListener("click", function(){ if(S.places.length > 1){ S.places.pop(); renderPlaces(); } });
+    rem.addEventListener("click", function(){ if(S.places.length > 1){ S.places.pop(); renderPlaces(); renderPlayers(); } });
     var wrap = el("div", "row-actions");
     wrap.style.marginTop = "0";
     wrap.appendChild(add); wrap.appendChild(rem);
@@ -699,16 +891,49 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
     });
   }
 
-  /* ---------- пересчёт и вывод ---------- */
+  /* ---------- сводка ---------- */
+  function renderSummary(c){
+    var tiles;
+    if(S.mode === "cash"){
+      tiles = [
+        ["Закуплено", money(c.pool)],
+        ["Игроков", String(c.n)],
+        ["Вышло фишками", c.pending ? "—" : money(c.pool + c.cashDiff), c.cashDiff !== 0],
+        ["Расходы с носа", c.hasExp ? money(c.share, 2) : "—"]
+      ];
+    } else if(S.mode === "places"){
+      tiles = [
+        ["Банк", money(c.pool)],
+        ["Игроков", String(c.n)],
+        ["Мест в призах", String(S.places.length)],
+        ["Расходы с носа", c.hasExp ? money(c.share, 2) : "—"]
+      ];
+    } else {
+      tiles = [
+        ["Банк", money(c.pool)],
+        ["Игроков", String(c.n)],
+        ["Фишек в игре", fmtN(c.totalStack)],
+        ["Расходы с носа", c.hasExp ? money(c.share, 2) : "—"]
+      ];
+    }
+    var box = $("summary");
+    box.innerHTML = "";
+    tiles.forEach(function(t){
+      var d = el("div", "stat" + (t[2] ? " alarm" : ""));
+      d.appendChild(el("div", "k", t[0]));
+      d.appendChild(el("div", "v", t[1]));
+      box.appendChild(d);
+    });
+  }
+
+  /* ---------- пересчёт ---------- */
   function recalc(){
     var c = calc();
+    var m = MODES[S.mode];
+    renderSummary(c);
 
-    $("s-pool").textContent = money(c.pool);
-    $("s-players").textContent = String(c.n);
-    $("s-chips").textContent = fmtN(c.totalStack);
-    $("s-share").textContent = c.payerOk ? money(c.share, 2) : "—";
-    $("chip-price").textContent = (c.totalStack > 0 && c.pool > 0)
-      ? "1 фишка ≈ " + money(c.pool / c.totalStack, 2)
+    $("rate-note").textContent = (c.rate > 0 && (S.mode === "cash" || !c.pending))
+      ? "1 фишка = " + money(c.rate, 4)
       : "";
 
     c.rows.forEach(function(r, i){
@@ -717,27 +942,50 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
       ref.pay.textContent = c.pending ? "—" : money(r.payout, 2);
       ref.net.textContent = signed(r.netInt);
       ref.net.className = "net " + (r.netInt > 0 ? "up" : r.netInt < 0 ? "down" : "zero");
-      ref.rank.textContent = c.pending ? "#" + (i + 1) : "#" + r.place;
+      var showPlace = !c.pending && r.place >= 1;
+      ref.rank.textContent = showPlace ? "#" + r.place : "#" + (i + 1);
+      ref.rank.className = "rank" + (showPlace && r.place === 1 ? " win" : "");
+      if(ref.conv) ref.conv.textContent = r.p.stack > 0 ? "= " + money(r.p.stack * c.rate, 2) : "";
+      if(S.mode === "places") ref.card.classList.toggle("out", r.p.place > S.places.length && r.p.place >= 1);
     });
 
-    var hint = "";
-    if(c.n === 0) hint = "Добавь игроков.";
-    else if(c.pool === 0) hint = "Укажи бай-ин и количество бай-инов — тогда появится банк.";
-    else if(c.totalStack === 0) hint = S.mode === "stack"
-      ? "Введи финальные стеки — банк делится пропорционально фишкам. Пока показан только расчёт за набор."
-      : "Введи стеки — по ним определяются места. Пока показан только расчёт за набор.";
-    else if(S.mode === "places"){
-      var sum = S.places.slice(0, Math.min(S.places.length, c.n)).reduce(function(a, b){ return a + b; }, 0);
-      if(sum <= 0) hint = "Укажи призовые проценты хотя бы для одного места.";
-      else if(Math.abs(sum - 100) > 0.01) hint = "Сумма призовых мест " + fmtN(sum, 2) + "% — доли пересчитаны пропорционально.";
+    // подсказки
+    var hints = [];
+    if(c.n === 0) hints.push(["", "Добавь игроков."]);
+    else if(c.pool === 0 && S.mode !== "cash") hints.push(["", "Укажи бай-ин и количество бай-инов — тогда появится банк."]);
+    if(c.n > 0 && c.pending){
+      if(S.mode === "places") hints.push(["", "Расставь места — банк разойдётся по призовым процентам. Пока показан только расчёт расходов."]);
+      else if(S.mode === "stack") hints.push(["", "Введи финальные стеки — банк делится пропорционально фишкам. Пока показан только расчёт расходов."]);
+      else hints.push(["", "Впиши, кто с чем вышел. Пока показан только расчёт расходов."]);
     }
-    $("results-hint").innerHTML = "";
-    if(hint) $("results-hint").appendChild(el("p", "hint", hint));
+    if(S.mode === "places" && !c.pending){
+      var used = S.places.reduce(function(a, b){ return a + b; }, 0);
+      if(c.dupPlaces) hints.push(["warn", "Одно место занято несколькими игроками — приз за него делится между ними поровну."]);
+      else if(Math.abs(used - 100) > 0.01 && c.claimedSum > 0)
+        hints.push(["", "Сумма призовых мест " + fmtN(used, 2) + "% — доли пересчитаны пропорционально."]);
+    }
+    if(S.mode === "cash" && Math.abs(c.cashDiff) >= 0.5){
+      hints.push(["warn", c.cashDiff > 0
+        ? "Фишек на руках на " + money(c.cashDiff, 2) + " больше, чем закуплено. Проверь подсчёт или доп. закупки."
+        : "Фишек на руках на " + money(-c.cashDiff, 2) + " меньше, чем закуплено. Кто-то ещё не вышел или потерял фишки."]);
+    }
+    if(S.mode === "cash" && S.chipsPerBuyIn <= 0)
+      hints.push(["warn", "Укажи, сколько фишек выдаётся за одну закупку — иначе фишки не во что превращать."]);
 
-    var ranked = !c.pending;
-    var cols = ["#", "Игрок", "Стек", "Взнос, ₽", "Выплата, ₽"];
-    if(c.payerOk) cols.push("Набор, ₽");
+    var hintBox = $("results-hint");
+    hintBox.innerHTML = "";
+    hints.forEach(function(h){
+      hintBox.appendChild(el("p", "hint" + (h[0] ? " " + h[0] : ""), h[1]));
+    });
+
+    // таблица
+    var cols = ["#", "Игрок"];
+    if(S.mode === "cash") cols.push("Фишки", "Закуплено, ₽", "Кэшаут, ₽");
+    else if(S.mode === "stack") cols.push("Стек", "Взнос, ₽", "Выплата, ₽");
+    else cols.push("Взнос, ₽", "Выплата, ₽");
+    if(c.hasExp) cols.push("Расходы, ₽");
     cols.push("Итог, ₽");
+
     resultsHead.innerHTML = "";
     var htr = document.createElement("tr");
     cols.forEach(function(t){
@@ -747,9 +995,9 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
     });
     resultsHead.appendChild(htr);
 
-    var sorted = c.rows.slice().sort(function(a, b){ return a.place - b.place; });
+    var sorted = c.order.map(function(i){ return c.rows[i]; });
     resultsEl.innerHTML = "";
-    sorted.forEach(function(r){
+    sorted.forEach(function(r, k){
       var tr = document.createElement("tr");
       function td(txt, cls){
         var d = document.createElement("td");
@@ -757,12 +1005,13 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
         if(cls) d.className = cls;
         return d;
       }
-      tr.appendChild(td(ranked ? String(r.place) : "—", ranked && r.place === 1 ? "medal" : ""));
+      var showPlace = !c.pending && r.place >= 1;
+      tr.appendChild(td(showPlace ? String(r.place) : "—", showPlace && r.place === 1 ? "medal" : ""));
       tr.appendChild(td(r.name));
-      tr.appendChild(td(fmtN(r.p.stack)));
+      if(S.mode !== "places") tr.appendChild(td(fmtN(r.p.stack)));
       tr.appendChild(td(fmtN(r.contrib)));
       tr.appendChild(td(c.pending ? "—" : fmtN(r.payout, 2)));
-      if(c.payerOk) tr.appendChild(td(signedN(Math.round(r.setDelta * 100) / 100, 2)));
+      if(c.hasExp) tr.appendChild(td(signedN(Math.round(r.expDelta * 100) / 100, 2)));
       var last = td(signedN(r.netInt, 0));
       last.style.color = r.netInt > 0 ? "var(--pos)" : r.netInt < 0 ? "var(--neg)" : "var(--ink-3)";
       last.style.fontWeight = "600";
@@ -770,12 +1019,24 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
       resultsEl.appendChild(tr);
     });
 
+    // итого по расходам
+    var expTot = $("exp-total");
+    expTot.innerHTML = "";
+    if(S.expenses.length && c.n > 0){
+      expTot.appendChild(el("span", null, "Итого расходов"));
+      var right = el("span");
+      right.innerHTML = "<b>" + money(c.expTotal) + "</b> · по <b>" + money(c.share, 2) + "</b> с человека";
+      expTot.appendChild(right);
+    }
+
     var wrapEl = resultsEl.closest(".tbl-wrap");
     if(wrapEl) $("tbl-note").textContent = (wrapEl.scrollWidth - wrapEl.clientWidth > 4)
       ? "листается вбок · итог округлён до рубля" : "итог округлён до рубля";
 
+    // переводы
     var trans = settle(c.rows);
-    $("pays-note").textContent = trans.length ? (trans.length + (trans.length === 1 ? " перевод" : trans.length < 5 ? " перевода" : " переводов")) : "";
+    $("pays-note").textContent = trans.length
+      ? trans.length + " " + plural(trans.length, "перевод", "перевода", "переводов") : "";
     paysEl.innerHTML = "";
     if(!trans.length){
       paysEl.appendChild(el("p", "empty", "Все в расчёте — переводить нечего."));
@@ -788,18 +1049,42 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
         row.appendChild(el("span", "amt", money(t.amt)));
         paysEl.appendChild(row);
       });
+      var moved = trans.reduce(function(a, x){ return a + x.amt; }, 0);
+      var credits = c.rows.reduce(function(a, r){ return a + Math.max(0, r.netInt); }, 0);
+      var debts = c.rows.reduce(function(a, r){ return a + Math.max(0, -r.netInt); }, 0);
+      if(credits !== debts){
+        var left = el("p", "hint warn", credits > debts
+          ? "Переводы не закрывают " + money(credits - moved) + " — столько фишек лишних. Сначала сведи подсчёт."
+          : "Лишние " + money(debts - moved) + " никому не уходят — фишек на руках меньше, чем закуплено.");
+        left.style.margin = "4px 0 0";
+        paysEl.appendChild(left);
+      }
     }
+
     save();
     return c;
   }
 
   function summaryText(){
     var c = calc();
-    var lines = ["Домашняя финалка", "Банк: " + money(c.pool)];
-    if(c.payerOk) lines.push("Набор " + money(S.setCost) + " — по " + money(c.share, 2) + " с человека");
+    var m = MODES[S.mode];
+    var head = S.mode === "cash" ? "Кэш" : S.mode === "places" ? "Турнир по местам" : "Турнир, делим по стекам";
+    var lines = ["Домашняя финалка · " + head];
+    lines.push(S.mode === "cash" ? "Закуплено: " + money(c.pool) : "Банк: " + money(c.pool));
+    if(c.hasExp){
+      lines.push("Расходы: " + money(c.expTotal) + " — по " + money(c.share, 2) + " с человека");
+      S.expenses.forEach(function(e, i){
+        var payer = S.players.filter(function(p){ return p.id === e.payer; })[0];
+        var pi = S.players.indexOf(payer);
+        lines.push("  · " + (e.title.trim() || "Расход " + (i + 1)) + " — " + money(e.amount) +
+                   (payer ? " (" + nameOf(payer, pi) + ")" : ""));
+      });
+    }
     lines.push("");
-    c.rows.slice().sort(function(a, b){ return a.place - b.place; }).forEach(function(r){
-      lines.push(r.place + ". " + r.name + " — стек " + fmtN(r.p.stack) + ", итог " + signed(r.netInt));
+    c.order.map(function(i){ return c.rows[i]; }).forEach(function(r, k){
+      var pos = (!c.pending && r.place >= 1) ? r.place + ". " : "· ";
+      var mid = S.mode === "places" ? "" : ", фишек " + fmtN(r.p.stack);
+      lines.push(pos + r.name + mid + ", итог " + signed(r.netInt));
     });
     var t = settle(c.rows);
     if(t.length){
@@ -818,27 +1103,34 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
     toastTimer = setTimeout(function(){ t.classList.remove("on"); }, 2200);
   }
 
+  /* ---------- режимы ---------- */
+  function setMode(mode, skipRender){
+    S.mode = MODES[mode] ? mode : "stack";
+    ["places","stack","cash"].forEach(function(k){
+      $("mode-" + k).setAttribute("aria-pressed", String(S.mode === k));
+    });
+    $("mode-note").textContent = MODES[S.mode].note;
+    $("buyin-label").textContent = MODES[S.mode].buyInLabel;
+    $("places-box").hidden = S.mode !== "places";
+    $("chips-field").hidden = S.mode !== "cash";
+    if(!skipRender) renderPlayers();
+  }
+
   /* ---------- события ---------- */
   $("buyin").addEventListener("input", function(){ S.buyIn = num(this.value); recalc(); });
-  $("set-cost").addEventListener("input", function(){ S.setCost = num(this.value); recalc(); });
-  $("set-payer").addEventListener("change", function(){ S.setPayer = parseInt(this.value, 10); recalc(); });
-  $("set-split").addEventListener("change", function(){
-    S.setSplit = this.checked;
-    $("set-fields").style.opacity = this.checked ? "1" : ".45";
-    recalc();
+  $("chips-per").addEventListener("input", function(){ S.chipsPerBuyIn = num(this.value); recalc(); });
+  ["places","stack","cash"].forEach(function(k){
+    $("mode-" + k).addEventListener("click", function(){ setMode(k); });
   });
-  function setMode(m){
-    S.mode = m;
-    $("mode-stack").setAttribute("aria-pressed", String(m === "stack"));
-    $("mode-places").setAttribute("aria-pressed", String(m === "places"));
-    $("places-box").hidden = m !== "places";
-    recalc();
-  }
-  $("mode-stack").addEventListener("click", function(){ setMode("stack"); });
-  $("mode-places").addEventListener("click", function(){ setMode("places"); });
-  $("add-player").addEventListener("click", function(){ addPlayer(""); renderPayer(); });
+  $("add-exp").addEventListener("click", function(){
+    addExpense("", 0);
+    renderExpenses();
+    var last = $("expenses").querySelector(".exp:last-child input.txt");
+    if(last) last.focus();
+  });
+  $("add-player").addEventListener("click", function(){ addPlayer(""); renderExpenses(); });
   $("clear-stacks").addEventListener("click", function(){
-    S.players.forEach(function(p){ p.stack = 0; p.chips = []; });
+    S.players.forEach(function(p){ p.stack = 0; p.place = 0; p.chips = []; });
     renderPlayers();
   });
   var resetArmed = 0, resetTimer;
@@ -851,25 +1143,24 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
       clearTimeout(resetTimer);
       resetTimer = setTimeout(function(){
         resetArmed = 0;
-        btn.textContent = "Новый турнир";
+        btn.textContent = "Новый вечер";
         btn.classList.remove("danger");
       }, 4000);
       return;
     }
     clearTimeout(resetTimer);
     resetArmed = 0;
-    btn.textContent = "Новый турнир";
+    btn.textContent = "Новый вечер";
     btn.classList.remove("danger");
     seed();
     $("buyin").value = fmtN(S.buyIn);
-    $("set-cost").value = fmtN(S.setCost);
-    renderPlayers(); renderPayer();
-    toast("Новый турнир");
+    renderPlayers(); renderExpenses();
+    toast("Новый вечер");
   });
   $("toggle-denoms").addEventListener("click", function(){
-    var c = $("denoms-card");
-    c.hidden = !c.hidden;
-    this.setAttribute("aria-expanded", String(!c.hidden));
+    var card = $("denoms-card");
+    card.hidden = !card.hidden;
+    this.setAttribute("aria-expanded", String(!card.hidden));
   });
   $("add-denom").addEventListener("click", function(){
     if(S.denoms.length < 6){ S.denoms.push(5000); renderDenoms(); save(); }
@@ -899,19 +1190,19 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
     }
   }
 
-  window.__pf = { S: S, calc: calc, settle: settle, roundKeepSum: roundKeepSum, recalc: recalc, num: num };
+  window.__pf = { S: S, calc: calc, settle: settle, roundKeepSum: roundKeepSum, recalc: recalc,
+                  num: num, renderPlayers: renderPlayers, renderExpenses: renderExpenses,
+                  addExpense: addExpense, setMode: setMode };
 
   /* ---------- старт ---------- */
   if(!load()) seed();
   $("buyin").value = fmtN(S.buyIn);
-  $("set-cost").value = fmtN(S.setCost);
-  $("set-split").checked = S.setSplit;
-  $("set-fields").style.opacity = S.setSplit ? "1" : ".45";
+  $("chips-per").value = fmtN(S.chipsPerBuyIn);
   renderDenoms();
   renderPlaces();
+  setMode(S.mode, true);
   renderPlayers();
-  renderPayer();
-  setMode(S.mode);
+  renderExpenses();
 })();
 </script>
 </body>
