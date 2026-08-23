@@ -175,6 +175,83 @@ const near = (a, b, eps = 0.011) => Math.abs(a - b) <= eps;
   ok('в кэше список отсортирован по выигрышу',
      c.order.map(i => c.rows[i].netInt).every((v, i, a) => i === 0 || a[i - 1] >= v), c.order.map(i => c.rows[i].netInt));
 
+  console.log('\n— кэшаут: выход из-за стола —');
+  await page.locator('#mode-cash').click();
+  await page.waitForTimeout(150);
+  ok('у всех бейдж «за столом»', await page.locator('.player .badge.live').count() === 4);
+  ok('кнопка выхода есть у каждого', await page.locator('.player .p-act button').count() === 4);
+  ok('лог кэшаутов пуст', await page.locator('.cashout').count() === 0);
+
+  const anyaCard = () => page.locator('.player').filter({ has: page.locator('input.txt[value="Аня"]') });
+  let payBefore = (await calc()).rows[1].payout;
+  await page.locator('.player').nth(1).locator('.p-act button').click();   // Аня выходит с 3000 фишек
+  await page.waitForTimeout(150);
+  c = await calc();
+  ok('запись о кэшауте появилась', await page.locator('.player').nth(1).locator('.cashout').count() === 1);
+  ok('фишки на руках обнулились', c.rows[1].p.stack === 0, c.rows[1].p.stack);
+  ok('фишки записаны в лог', c.rows[1].p.cashOuts[0].chips === 3000, c.rows[1].p.cashOuts);
+  ok('время выхода записано', /^\d{2}:\d{2}$/.test(c.rows[1].p.cashOuts[0].at), c.rows[1].p.cashOuts[0].at);
+  ok('выплата не изменилась после выхода', near(c.rows[1].payout, payBefore), [payBefore, c.rows[1].payout]);
+  ok('бейдж сменился на «вышел»', (await page.locator('.player').nth(1).locator('.badge').textContent()).includes('вышел'));
+  ok('поле «фишек на руках» у вышедшего убрано', await page.locator('.player').nth(1).locator('.p-body input').count() === 0);
+  ok('карточка притухла', (await page.locator('.player').nth(1).getAttribute('class')).includes('out'));
+  ok('в сводке «за столом 3 из 4»', /3 из 4/.test(await page.locator('.stat').nth(1).textContent()), await page.locator('.stat').nth(1).textContent());
+  ok('подсказка про незакрытых игроков', (await hints()).includes('ещё за столом'), await hints());
+  ok('баланс не поехал', c.rows.reduce((a, r) => a + r.netInt, 0) === Math.round(c.cashDiff) && near(c.cashDiff, 0), c.cashDiff);
+
+  await page.locator('.player').nth(1).locator('.p-act button').click();   // и вернулась
+  await page.waitForTimeout(150);
+  c = await calc();
+  ok('вернулась за стол — бейдж снова «за столом»', await page.locator('.player').nth(1).locator('.badge.live').count() === 1);
+  ok('закупка добавилась', c.rows[1].p.entries === 2, c.rows[1].p.entries);
+  ok('банк вырос на закупку', c.pool === 8000, c.pool);
+  ok('старый кэшаут остался в логе', c.rows[1].p.cashOuts.length === 1);
+  ok('выплата считает и сданные, и новые фишки', near(c.rows[1].payout, 600), c.rows[1].payout);
+
+  await setStack(1, 9000);                                                  // доиграла и вышла второй раз
+  await page.locator('.player').nth(1).locator('.p-act button').click();
+  await page.waitForTimeout(150);
+  c = await calc();
+  ok('второй кэшаут в логе', c.rows[1].p.cashOuts.length === 2, c.rows[1].p.cashOuts);
+  ok('кэшауты суммируются: 3000 + 9000 = 12000 фишек',
+     await page.evaluate(() => window.__pf.cashedChips(window.__pf.S.players[1])) === 12000);
+  ok('выплата 12000 × 0,2 = 2400 ₽', near(c.rows[1].payout, 2400), c.rows[1].payout);
+  ok('в таблице итогов показаны все фишки игрока',
+     (await page.locator('#results tr').filter({ hasText: 'Аня' }).locator('td').nth(2).textContent()).replace(/\s/g, '') === '12000');
+
+  await page.locator('.player').nth(1).locator('.cashout input').first().fill('4000');
+  await page.waitForTimeout(120);
+  c = await calc();
+  ok('сумму в логе можно поправить', near(c.rows[1].payout, 2600), c.rows[1].payout);
+  await page.locator('.player').nth(1).locator('.cashout .del').first().click();
+  await page.waitForTimeout(150);
+  c = await calc();
+  ok('лишний кэшаут удаляется', c.rows[1].p.cashOuts.length === 1 && near(c.rows[1].payout, 1800), c.rows[1].payout);
+
+  ok('в турнирных режимах кнопки выхода нет', await (async () => {
+    await page.locator('#mode-stack').click();
+    await page.waitForTimeout(120);
+    const none = await page.locator('.player .p-act').count() === 0 && await page.locator('.player .badge').count() === 0;
+    await page.locator('#mode-cash').click();
+    await page.waitForTimeout(120);
+    return none;
+  })());
+
+  // возвращаем расклад к сведённому виду: закуплено 8000 = 40 000 фишек
+  await page.evaluate(() => {
+    const S = window.__pf.S;
+    S.players[0].entries = 2; S.players[0].stack = 15000; S.players[0].out = false; S.players[0].cashOuts = [];
+    S.players[1].entries = 2; S.players[1].stack = 0;     S.players[1].out = true;
+    S.players[1].cashOuts = [{ chips: 8000, at: '22:10' }];
+    S.players[2].entries = 1; S.players[2].stack = 0;     S.players[2].out = true;  S.players[2].cashOuts = [];
+    S.players[3].entries = 3; S.players[3].stack = 17000; S.players[3].out = false; S.players[3].cashOuts = [];
+    window.__pf.renderPlayers();
+  });
+  await page.waitForTimeout(150);
+  c = await calc();
+  ok('расклад с кэшаутами сходится', near(c.cashDiff, 0) && c.rows.reduce((a, r) => a + r.netInt, 0) === 0,
+     [c.cashDiff, c.rows.map(r => r.netInt)]);
+
   console.log('\n— общие расходы —');
   await page.locator('#add-exp').click();
   await page.waitForTimeout(80);
@@ -235,17 +312,17 @@ const near = (a, b, eps = 0.011) => Math.abs(a - b) <= eps;
   console.log('\n— сохранение между открытиями —');
   const before = await page.evaluate(() => JSON.stringify({
     mode: window.__pf.S.mode,
-    rows: window.__pf.calc().rows.map(r => [r.name, r.p.stack, r.p.place, r.p.entries, r.netInt]),
+    rows: window.__pf.calc().rows.map(r => [r.name, r.p.stack, r.p.place, r.p.entries, r.p.out, r.p.cashOuts, r.netInt]),
     exp: window.__pf.S.expenses.map(e => [e.title, e.amount, e.payer])
   }));
   await page.reload();
   await page.waitForTimeout(300);
   const after = await page.evaluate(() => JSON.stringify({
     mode: window.__pf.S.mode,
-    rows: window.__pf.calc().rows.map(r => [r.name, r.p.stack, r.p.place, r.p.entries, r.netInt]),
+    rows: window.__pf.calc().rows.map(r => [r.name, r.p.stack, r.p.place, r.p.entries, r.p.out, r.p.cashOuts, r.netInt]),
     exp: window.__pf.S.expenses.map(e => [e.title, e.amount, e.payer])
   }));
-  ok('после перезагрузки всё на месте, включая режим и места', before === after, { before, after });
+  ok('после перезагрузки всё на месте: режим, места, кэшауты', before === after, { before, after });
   ok('нет ошибок JS после перезагрузки', errors.length === 0, errors);
 
   console.log('\n— сброс в два клика —');
@@ -259,6 +336,7 @@ const near = (a, b, eps = 0.011) => Math.abs(a - b) <= eps;
   ok('второй клик сбрасывает', await page.locator('.player').first().locator('input.txt').inputValue() === 'Я');
   ok('после сброса 4 игрока', await page.locator('.player').count() === 4);
   ok('после сброса результаты пустые', (await calc()).pending === true);
+  ok('после сброса кэшаутов нет', await page.evaluate(() => window.__pf.S.players.every(p => !p.out && p.cashOuts.length === 0)));
 
   console.log('\n— крайние случаи —');
   c = await calc();
@@ -298,7 +376,8 @@ const near = (a, b, eps = 0.011) => Math.abs(a - b) <= eps;
         S.players.push({ id: S.nextId++, name: '', entries: Math.floor(rnd() * 4),
                          stack: Math.floor(rnd() * rnd() * 40000),
                          place: rnd() < .25 ? 0 : 1 + Math.floor(rnd() * (n + 1)),
-                         chips: [], open: false });
+                         chips: [], open: false, out: rnd() < .4,
+                         cashOuts: rnd() < .5 ? [] : [{ chips: Math.floor(rnd() * 20000), at: '22:00' }] });
       S.buyIn = Math.floor(rnd() * 3000) + (rnd() < .3 ? 0.5 : 0);
       S.chipsPerBuyIn = rnd() < .1 ? 0 : Math.floor(rnd() * 20000) + 1;
       S.places = [Math.floor(rnd() * 80), Math.floor(rnd() * 40), Math.floor(rnd() * 20)];

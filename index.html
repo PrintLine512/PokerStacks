@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<meta name="description" content="Турнир по местам, дележ банка по стекам, кэш и общие расходы — калькулятор для домашнего покера.">
+<meta name="description" content="Турнир по местам, дележ банка по стекам, кэш с выходом из-за стола и общие расходы — калькулятор для домашнего покера.">
 <title>Домашняя финалка</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -232,6 +232,25 @@ button.danger{background:var(--neg-soft);color:var(--neg);border-color:transpare
   padding:9px 4px;min-width:34px;text-align:center;font-variant-numeric:tabular-nums;
 }
 .p-conv{font-size:12px;color:var(--ink-3);font-family:"JetBrains Mono",monospace;margin-top:5px}
+.cashouts{display:grid;gap:6px;margin-top:12px}
+.cashout{
+  display:flex;align-items:center;gap:8px;background:var(--surface-2);
+  border-radius:10px;padding:7px 10px;font-size:13px;
+}
+.cashout .at{color:var(--ink-3);font-family:"JetBrains Mono",monospace;font-size:12px;flex:none}
+.cashout input{width:92px;padding:5px 8px;font-size:14px}
+.cashout .rub{
+  margin-left:auto;font-family:"JetBrains Mono",monospace;font-weight:600;
+  font-variant-numeric:tabular-nums;color:var(--ink-2);
+}
+.cashout .del{font-size:16px;padding:2px 6px}
+.p-act{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.p-act button{flex:1;min-width:150px}
+.badge{
+  font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
+  padding:3px 8px;border-radius:99px;background:var(--surface-2);color:var(--ink-3);flex:none;
+}
+.badge.live{background:var(--accent-soft);color:var(--accent)}
 .p-out{
   display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:space-between;
   margin-top:12px;padding-top:11px;border-top:1px dashed var(--line);
@@ -441,7 +460,8 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
 
   /* ---------- модель ---------- */
   function addPlayer(name, quiet){
-    var p = { id: S.nextId++, name: name || "", entries: 1, stack: 0, place: 0, chips: [], open: false };
+    var p = { id: S.nextId++, name: name || "", entries: 1, stack: 0, place: 0,
+              chips: [], open: false, out: false, cashOuts: [] };
     S.players.push(p);
     if(!quiet) renderPlayers();
     return p;
@@ -459,6 +479,28 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
       if(!S.players.some(function(p){ return p.id === e.payer; })) e.payer = first;
     });
   }
+  function nowHM(){
+    try {
+      return new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    } catch(e){ return ""; }
+  }
+  function cashedChips(p){
+    return p.cashOuts.reduce(function(a, x){ return a + x.chips; }, 0);
+  }
+  // Выход из-за стола: фишки на руках фиксируются записью в лог, игрок больше не в игре.
+  function cashOut(p){
+    if(p.stack > 0){
+      p.cashOuts.push({ chips: p.stack, at: nowHM() });
+      p.stack = 0;
+      p.chips = [];
+    }
+    p.out = true;
+  }
+  function rebuy(p){
+    p.out = false;
+    p.entries += 1;
+  }
+
   function seed(){
     S.players = [];
     S.nextId = 1;
@@ -505,8 +547,13 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
   function calc(){
     var n = S.players.length;
     var cash = S.mode === "cash";
-    var pool = 0, totalStack = 0;
-    S.players.forEach(function(p){ pool += p.entries * S.buyIn; totalStack += p.stack; });
+    var pool = 0, totalStack = 0, totalCashed = 0, atTable = 0;
+    S.players.forEach(function(p){
+      pool += p.entries * S.buyIn;
+      totalStack += p.stack;
+      totalCashed += cashedChips(p);
+      if(!p.out) atTable++;
+    });
 
     normalizeExpenses();
     var expTotal = 0, paidBy = {};
@@ -527,7 +574,9 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
     });
     var claimedSum = claimed.reduce(function(a, b){ return a + b; }, 0);
 
-    var pending = S.mode === "places" ? claimedSum <= 0 : totalStack <= 0;
+    var pending = S.mode === "places" ? claimedSum <= 0
+               : cash ? (totalStack + totalCashed) <= 0
+               : totalStack <= 0;
 
     var payouts;
     if(pending){
@@ -538,7 +587,8 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
     } else if(S.mode === "stack"){
       payouts = S.players.map(function(p){ return pool * p.stack / totalStack; });
     } else {
-      payouts = S.players.map(function(p){ return p.stack * rate; });
+      // в кэше на руках у игрока и сданные фишки, и те, что ещё на столе
+      payouts = S.players.map(function(p){ return (p.stack + cashedChips(p)) * rate; });
     }
 
     var rows = S.players.map(function(p, i){
@@ -581,7 +631,8 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
       });
     }
 
-    return { rows: rows, pool: pool, totalStack: totalStack, share: share, n: n, rate: rate,
+    return { rows: rows, pool: pool, totalStack: totalStack, totalCashed: totalCashed,
+             atTable: atTable, share: share, n: n, rate: rate,
              expTotal: expTotal, hasExp: hasExp, pending: pending, cashDiff: cashDiff,
              claimedSum: claimedSum, dupPlaces: dupPlaces, order: order };
   }
@@ -623,7 +674,11 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
       if(Array.isArray(d.denoms) && d.denoms.length) S.denoms = d.denoms;
       S.players = d.players.map(function(p){
         return { id: p.id, name: p.name || "", entries: p.entries || 1, stack: p.stack || 0,
-                 place: p.place || 0, chips: Array.isArray(p.chips) ? p.chips : [], open: false };
+                 place: p.place || 0, chips: Array.isArray(p.chips) ? p.chips : [], open: false,
+                 out: !!p.out,
+                 cashOuts: Array.isArray(p.cashOuts)
+                   ? p.cashOuts.map(function(x){ return { chips: x.chips || 0, at: x.at || "" }; })
+                   : [] };
       });
       S.nextId = Math.max(1, S.nextId, S.players.reduce(function(a, p){ return Math.max(a, p.id + 1); }, 1));
       if(Array.isArray(d.expenses)){
@@ -699,6 +754,7 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
 
       var top = el("div", "p-top");
       var rank = el("div", "rank", "#" + (idx + 1));
+      if(S.mode === "cash" && p.out) card.classList.add("out");
       var name = el("input", "txt");
       name.type = "text"; name.value = p.name; name.placeholder = "Игрок " + (idx + 1);
       name.setAttribute("aria-label", "Имя игрока " + (idx + 1));
@@ -709,7 +765,14 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
         S.players.splice(idx, 1);
         renderPlayers(); renderExpenses();
       });
-      top.appendChild(rank); top.appendChild(name); top.appendChild(del);
+      top.appendChild(rank); top.appendChild(name);
+      if(S.mode === "cash"){
+        var last = p.cashOuts[p.cashOuts.length - 1];
+        var badge = el("div", "badge" + (p.out ? "" : " live"),
+          p.out ? (last && last.at ? "вышел " + last.at : "вышел") : "за столом");
+        top.appendChild(badge);
+      }
+      top.appendChild(del);
 
       var body = el("div", "p-body");
 
@@ -750,9 +813,11 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
         });
         fPlace.appendChild(sel);
         body.appendChild(fPlace);
+      } else if(S.mode === "cash" && p.out){
+        // игрок вышел: фишки уже в логе, поле на руках только мешает
       } else {
         var fStack = el("label", "field");
-        fStack.appendChild(el("span", null, S.mode === "cash" ? "Вышел с, фишек" : "Стек, фишек"));
+        fStack.appendChild(el("span", null, S.mode === "cash" ? "Фишек на руках" : "Стек, фишек"));
         stackInp = numInput(p.stack ? fmtN(p.stack) : "", function(v){
           p.stack = v;
           recalc();
@@ -800,6 +865,50 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
         };
       }
 
+      var cashBox = null, actBox = null;
+      if(S.mode === "cash"){
+        cashBox = el("div", "cashouts");
+        var drawCashouts = function(){
+          cashBox.innerHTML = "";
+          p.cashOuts.forEach(function(co, ci){
+            var row = el("div", "cashout");
+            row.appendChild(el("span", "at", co.at || "выход"));
+            var inp = numInput(fmtN(co.chips), function(v){ co.chips = v; recalc(); });
+            inp.setAttribute("aria-label", "Фишек при выходе");
+            var rub = el("span", "rub", "");
+            var dl = el("button", "del", "×");
+            dl.type = "button";
+            dl.title = "Убрать кэшаут";
+            dl.addEventListener("click", function(){
+              p.cashOuts.splice(ci, 1);
+              renderPlayers();
+            });
+            row.appendChild(inp); row.appendChild(rub); row.appendChild(dl);
+            row._rub = rub;
+            cashBox.appendChild(row);
+          });
+        };
+        drawCashouts();
+
+        actBox = el("div", "p-act");
+        if(p.out){
+          var back = el("button", "ghost", "Вернулся за стол · +закупка");
+          back.type = "button";
+          back.addEventListener("click", function(){ rebuy(p); renderPlayers(); toast(nameOf(p, idx) + " снова в игре"); });
+          actBox.appendChild(back);
+        } else {
+          var outBtn = el("button", "primary", "Вышел из игры");
+          outBtn.type = "button";
+          outBtn.addEventListener("click", function(){
+            var was = p.stack;
+            cashOut(p);
+            renderPlayers();
+            toast(nameOf(p, idx) + " вышел" + (was > 0 ? " с " + fmtN(was) + " фишек" : " ни с чем"));
+          });
+          actBox.appendChild(outBtn);
+        }
+      }
+
       var out = el("div", "p-out");
       var pay = el("div", "pay");
       pay.innerHTML = m.payLabel + " <b>—</b>";
@@ -808,9 +917,12 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
 
       card.appendChild(top); card.appendChild(body);
       if(panel) card.appendChild(panel);
+      if(cashBox) card.appendChild(cashBox);
+      if(actBox) card.appendChild(actBox);
       card.appendChild(out);
       playersEl.appendChild(card);
-      rowRefs.push({ pay: pay.querySelector("b"), net: net, rank: rank, stack: stackInp, conv: conv, card: card });
+      rowRefs.push({ pay: pay.querySelector("b"), net: net, rank: rank, stack: stackInp,
+                     conv: conv, card: card, cashBox: cashBox });
     });
     recalc();
   }
@@ -897,7 +1009,7 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
     if(S.mode === "cash"){
       tiles = [
         ["Закуплено", money(c.pool)],
-        ["Игроков", String(c.n)],
+        ["За столом", c.atTable + " из " + c.n],
         ["Вышло фишками", c.pending ? "—" : money(c.pool + c.cashDiff), c.cashDiff !== 0],
         ["Расходы с носа", c.hasExp ? money(c.share, 2) : "—"]
       ];
@@ -946,6 +1058,12 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
       ref.rank.textContent = showPlace ? "#" + r.place : "#" + (i + 1);
       ref.rank.className = "rank" + (showPlace && r.place === 1 ? " win" : "");
       if(ref.conv) ref.conv.textContent = r.p.stack > 0 ? "= " + money(r.p.stack * c.rate, 2) : "";
+      if(ref.cashBox){
+        var rows = ref.cashBox.children;
+        for(var ci = 0; ci < rows.length; ci++){
+          if(rows[ci]._rub) rows[ci]._rub.textContent = money(r.p.cashOuts[ci].chips * c.rate, 2);
+        }
+      }
       if(S.mode === "places") ref.card.classList.toggle("out", r.p.place > S.places.length && r.p.place >= 1);
     });
 
@@ -969,6 +1087,9 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
         ? "Фишек на руках на " + money(c.cashDiff, 2) + " больше, чем закуплено. Проверь подсчёт или доп. закупки."
         : "Фишек на руках на " + money(-c.cashDiff, 2) + " меньше, чем закуплено. Кто-то ещё не вышел или потерял фишки."]);
     }
+    if(S.mode === "cash" && !c.pending && c.atTable > 0 && c.n > 0)
+      hints.push(["", c.atTable + " " + plural(c.atTable, "игрок ещё за столом", "игрока ещё за столом", "игроков ещё за столом") +
+                      " — итог предварительный, пока все не вышли."]);
     if(S.mode === "cash" && S.chipsPerBuyIn <= 0)
       hints.push(["warn", "Укажи, сколько фишек выдаётся за одну закупку — иначе фишки не во что превращать."]);
 
@@ -1008,7 +1129,7 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
       var showPlace = !c.pending && r.place >= 1;
       tr.appendChild(td(showPlace ? String(r.place) : "—", showPlace && r.place === 1 ? "medal" : ""));
       tr.appendChild(td(r.name));
-      if(S.mode !== "places") tr.appendChild(td(fmtN(r.p.stack)));
+      if(S.mode !== "places") tr.appendChild(td(fmtN(S.mode === "cash" ? r.p.stack + cashedChips(r.p) : r.p.stack)));
       tr.appendChild(td(fmtN(r.contrib)));
       tr.appendChild(td(c.pending ? "—" : fmtN(r.payout, 2)));
       if(c.hasExp) tr.appendChild(td(signedN(Math.round(r.expDelta * 100) / 100, 2)));
@@ -1083,7 +1204,9 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
     lines.push("");
     c.order.map(function(i){ return c.rows[i]; }).forEach(function(r, k){
       var pos = (!c.pending && r.place >= 1) ? r.place + ". " : "· ";
-      var mid = S.mode === "places" ? "" : ", фишек " + fmtN(r.p.stack);
+      var mid = S.mode === "places" ? ""
+              : S.mode === "cash" ? ", фишек " + fmtN(r.p.stack + cashedChips(r.p)) + (r.p.out ? "" : " (ещё в игре)")
+              : ", фишек " + fmtN(r.p.stack);
       lines.push(pos + r.name + mid + ", итог " + signed(r.netInt));
     });
     var t = settle(c.rows);
@@ -1130,7 +1253,7 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
   });
   $("add-player").addEventListener("click", function(){ addPlayer(""); renderExpenses(); });
   $("clear-stacks").addEventListener("click", function(){
-    S.players.forEach(function(p){ p.stack = 0; p.place = 0; p.chips = []; });
+    S.players.forEach(function(p){ p.stack = 0; p.place = 0; p.chips = []; p.out = false; p.cashOuts = []; });
     renderPlayers();
   });
   var resetArmed = 0, resetTimer;
@@ -1192,7 +1315,7 @@ footer{margin-top:32px;font-size:12px;color:var(--ink-3);text-align:center}
 
   window.__pf = { S: S, calc: calc, settle: settle, roundKeepSum: roundKeepSum, recalc: recalc,
                   num: num, renderPlayers: renderPlayers, renderExpenses: renderExpenses,
-                  addExpense: addExpense, setMode: setMode };
+                  addExpense: addExpense, setMode: setMode, cashOut: cashOut, cashedChips: cashedChips };
 
   /* ---------- старт ---------- */
   if(!load()) seed();
